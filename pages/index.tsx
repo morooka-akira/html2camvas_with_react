@@ -1,91 +1,75 @@
+import React from 'react'
+
 import Head from 'next/head'
+import { Options } from 'html2canvas'
 
-import Nav from 'components/nav'
-import PostList from 'components/PostList'
-import { withApollo } from 'lib/apollo'
+const isServer = typeof window === 'undefined'
+// NOTE: html2canvas() 内でwindowを参照しているらしく、SSRのときにエラーになってしまう。そのためClientのときだけ参照するようにする
+const html2canvas: (element: HTMLElement, options?: Partial<Options>) => Promise<HTMLCanvasElement> = isServer
+  ? undefined
+  : require('html2canvas')
 
-const Home = () => {
-  return (
-    <div>
-      <Head>
-        <title>Home</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <Nav />
-
-      <PostList></PostList>
-
-      <div className="hero">
-        <h1 className="title">Welcome to Next.js!</h1>
-        <p className="description">
-          To get started, edit <code>pages/index.js</code> and save to reload.
-        </p>
-
-        <div className="row">
-          <a href="https://nextjs.org/docs" className="card">
-            <h3>Documentation &rarr;</h3>
-            <p>Learn more about Next.js in the documentation.</p>
-          </a>
-          <a href="https://nextjs.org/learn" className="card">
-            <h3>Next.js Learn &rarr;</h3>
-            <p>Learn about Next.js by following an interactive tutorial!</p>
-          </a>
-          <a href="https://github.com/zeit/next.js/tree/master/examples" className="card">
-            <h3>Examples &rarr;</h3>
-            <p>Find other example boilerplates on the Next.js GitHub.</p>
-          </a>
-        </div>
-      </div>
-
-      <style jsx>{`
-        .hero {
-          width: 100%;
-          color: #333;
-        }
-        .title {
-          margin: 0;
-          width: 100%;
-          padding-top: 80px;
-          line-height: 1.15;
-          font-size: 48px;
-        }
-        .title,
-        .description {
-          text-align: center;
-        }
-        .row {
-          max-width: 880px;
-          margin: 80px auto 40px;
-          display: flex;
-          flex-direction: row;
-          justify-content: space-around;
-        }
-        .card {
-          padding: 18px 18px 24px;
-          width: 220px;
-          text-align: left;
-          text-decoration: none;
-          color: #434343;
-          border: 1px solid #9b9b9b;
-        }
-        .card:hover {
-          border-color: #067df7;
-        }
-        .card h3 {
-          margin: 0;
-          color: #067df7;
-          font-size: 18px;
-        }
-        .card p {
-          margin: 0;
-          padding: 12px 0 0;
-          font-size: 13px;
-          color: #333;
-        }
-      `}</style>
-    </div>
-  )
+async function createCanvasImage(element: HTMLDivElement): Promise<string> {
+  const canvas = await html2canvas(element)
+  return canvas.toDataURL()
 }
 
-export default withApollo(Home)
+type Props = {}
+type State = {
+  imageUrl?: string
+}
+
+class Home extends React.Component<Props, State> {
+  private content: HTMLDivElement
+
+  public constructor(props: Readonly<Props>) {
+    super(props)
+    this.state = {
+      imageUrl: undefined,
+    }
+  }
+
+  public render() {
+    return (
+      <div>
+        <Head>
+          <title>Home</title>
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <div className="continer">
+          <div className="content" ref={r => (this.content = r)}>
+            <h1 className="title">Welcome to Next.js!</h1>
+          </div>
+          <button onClick={this.clickCreateImage}>画像作成</button>
+          {this.state.imageUrl && (
+            <div>
+              <img src={this.state.imageUrl} />
+              <a href={this.state.imageUrl} download="image.png">
+                ダウンロード
+              </a>
+            </div>
+          )}
+        </div>
+
+        <style jsx>{`
+          .continer {
+            width: 100%;
+            color: #333;
+          }
+          .content {
+            width: 400px;
+            background-color: red;
+          }
+        `}</style>
+      </div>
+    )
+  }
+
+  private clickCreateImage = async () => {
+    const res = await createCanvasImage(this.content)
+    this.setState({ imageUrl: res })
+  }
+}
+
+export default Home
