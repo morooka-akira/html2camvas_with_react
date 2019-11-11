@@ -1,0 +1,23 @@
+version: '3.7'
+services:
+  app:
+    build: .
+    working_dir: /app
+    command: sh -c "(yarn check --integrity || yarn install) && yarn run dev"
+    ports:
+      - "${PORT}:3000"
+    volumes:
+      - .:/app
+      - next:/app/.next
+      - node_modules:/app/node_modules
+    environment:
+      PORT:
+    networks:
+      - default
+      - co-in-api_default
+volumes:
+  next:
+  node_modules:
+networks:
+  co-in-api_default:
+    external: true
